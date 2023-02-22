@@ -1,0 +1,5 @@
+.vscode
+.cache
+.bash_history
+.Xauthority
+build

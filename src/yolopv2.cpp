@@ -12,6 +12,9 @@
 #include <stdio.h>
 #include <vector>
 #include <math.h>
+#include <chrono>
+#include <iostream>
+using namespace std::chrono;
 #define MAX_STRIDE 64
 
 struct Object
@@ -315,17 +318,9 @@ static void draw_objects(const cv::Mat& bgr, const std::vector<Object>& objects,
     cv::waitKey();
 }
 
-static int detect_yolopv2( cv::Mat& bgr, std::vector<Object>& objects, ncnn::Mat& da_seg_mask_, ncnn::Mat&  ll_seg_mask_)
+static int detect_yolopv2( cv::Mat& bgr, std::vector<Object>& objects, ncnn::Mat& da_seg_mask_, ncnn::Mat&  ll_seg_mask_, ncnn::Extractor& ex,
+const int& target_size, const float& prob_threshold, const float& nms_threshold)
 {
-    ncnn::Net yolopv2;
-
-    yolopv2.load_param("../models/yolopv2.param");
-    yolopv2.load_model("../models/yolopv2.bin");
-
-    const int target_size = 640;
-    const float prob_threshold = 0.30f;
-    const float nms_threshold = 0.45f;
-
     int img_w = bgr.cols;
     int img_h = bgr.rows;
 
@@ -358,7 +353,6 @@ static int detect_yolopv2( cv::Mat& bgr, std::vector<Object>& objects, ncnn::Mat
     const float norm_vals[3] = { 1 / 255.f, 1 / 255.f, 1 / 255.f };
     in_pad.substract_mean_normalize(0, norm_vals);
 
-    ncnn::Extractor ex = yolopv2.create_extractor();
 
     ex.input("images", in_pad);
 
@@ -478,16 +472,33 @@ int main(int argc, char** argv)
 
     const char* imagepath = argv[1];
 
+    ncnn::Net yolopv2;
+
+    yolopv2.load_param("../models/yolopv2.param");
+    yolopv2.load_model("../models/yolopv2.bin");
+
+    const int target_size = 640;
+    const float prob_threshold = 0.30f;
+    const float nms_threshold = 0.45f;
+
+    ncnn::Extractor ex = yolopv2.create_extractor();
+
     cv::Mat m = cv::imread(imagepath, 1);
     if (m.empty())
     {
         fprintf(stderr, "cv::imread %s failed\n", imagepath);
         return -1;
     }
-    
     std::vector<Object> objects;
     ncnn::Mat da_seg_mask, ll_seg_mask;
-    detect_yolopv2(m, objects, da_seg_mask, ll_seg_mask);
+    detect_yolopv2(m, objects, da_seg_mask, ll_seg_mask, ex, target_size, prob_threshold, nms_threshold);
+    auto start = high_resolution_clock::now();
+    detect_yolopv2(m, objects, da_seg_mask, ll_seg_mask, ex, target_size, prob_threshold, nms_threshold);
+
+    auto stop = high_resolution_clock::now();
+    auto duration = duration_cast<microseconds>(stop - start);
+    std::cout << "detection time :" << duration.count() << std::endl;
+
     draw_objects(m, objects,da_seg_mask, ll_seg_mask);
 
     return 0;
