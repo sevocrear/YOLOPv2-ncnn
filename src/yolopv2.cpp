@@ -503,7 +503,9 @@ int main(int argc, char **argv)
         auto start = high_resolution_clock::now();
 
         ncnn::Extractor ex = yolopv2.create_extractor();
-
+        ex.set_light_mode(true);
+        ex.set_num_threads(4);
+        
         std::vector<Object> objects;
         ncnn::Mat da_seg_mask, ll_seg_mask;
 
