@@ -23,14 +23,14 @@ struct Object
     int label;
     float prob;
 };
-static void slice(const ncnn::Mat& in, ncnn::Mat& out, int start, int end, int axis)
+static void slice(const ncnn::Mat &in, ncnn::Mat &out, int start, int end, int axis)
 {
     ncnn::Option opt;
     opt.num_threads = 4;
     opt.use_fp16_storage = false;
     opt.use_packing_layout = false;
 
-    ncnn::Layer* op = ncnn::create_layer("Crop");
+    ncnn::Layer *op = ncnn::create_layer("Crop");
 
     // set param
     ncnn::ParamDict pd;
@@ -41,9 +41,9 @@ static void slice(const ncnn::Mat& in, ncnn::Mat& out, int start, int end, int a
     ends.fill(end);
     ncnn::Mat starts = ncnn::Mat(1);
     starts.fill(start);
-    pd.set(9, starts);// start
-    pd.set(10, ends);// end
-    pd.set(11, axes);//axes
+    pd.set(9, starts); // start
+    pd.set(10, ends);  // end
+    pd.set(11, axes);  // axes
 
     op->load_param(pd);
 
@@ -56,22 +56,22 @@ static void slice(const ncnn::Mat& in, ncnn::Mat& out, int start, int end, int a
 
     delete op;
 }
-static void interp(const ncnn::Mat& in, const float& scale, const int& out_w, const int& out_h, ncnn::Mat& out)
+static void interp(const ncnn::Mat &in, const float &scale, const int &out_w, const int &out_h, ncnn::Mat &out)
 {
     ncnn::Option opt;
     opt.num_threads = 4;
     opt.use_fp16_storage = false;
     opt.use_packing_layout = false;
 
-    ncnn::Layer* op = ncnn::create_layer("Interp");
+    ncnn::Layer *op = ncnn::create_layer("Interp");
 
     // set param
     ncnn::ParamDict pd;
-    pd.set(0, 2);// resize_type
-    pd.set(1, scale);// height_scale
-    pd.set(2, scale);// width_scale
-    pd.set(3, out_h);// height
-    pd.set(4, out_w);// width
+    pd.set(0, 2);     // resize_type
+    pd.set(1, scale); // height_scale
+    pd.set(2, scale); // width_scale
+    pd.set(3, out_h); // height
+    pd.set(4, out_w); // width
 
     op->load_param(pd);
 
@@ -84,13 +84,13 @@ static void interp(const ncnn::Mat& in, const float& scale, const int& out_w, co
 
     delete op;
 }
-static inline float intersection_area(const Object& a, const Object& b)
+static inline float intersection_area(const Object &a, const Object &b)
 {
     cv::Rect_<float> inter = a.rect & b.rect;
     return inter.area();
 }
 
-static void qsort_descent_inplace(std::vector<Object>& faceobjects, int left, int right)
+static void qsort_descent_inplace(std::vector<Object> &faceobjects, int left, int right)
 {
     int i = left;
     int j = right;
@@ -114,20 +114,22 @@ static void qsort_descent_inplace(std::vector<Object>& faceobjects, int left, in
         }
     }
 
-    #pragma omp parallel sections
+#pragma omp parallel sections
     {
-        #pragma omp section
+#pragma omp section
         {
-            if (left < j) qsort_descent_inplace(faceobjects, left, j);
+            if (left < j)
+                qsort_descent_inplace(faceobjects, left, j);
         }
-        #pragma omp section
+#pragma omp section
         {
-            if (i < right) qsort_descent_inplace(faceobjects, i, right);
+            if (i < right)
+                qsort_descent_inplace(faceobjects, i, right);
         }
     }
 }
 
-static void qsort_descent_inplace(std::vector<Object>& faceobjects)
+static void qsort_descent_inplace(std::vector<Object> &faceobjects)
 {
     if (faceobjects.empty())
         return;
@@ -135,7 +137,7 @@ static void qsort_descent_inplace(std::vector<Object>& faceobjects)
     qsort_descent_inplace(faceobjects, 0, faceobjects.size() - 1);
 }
 
-static void nms_sorted_bboxes(const std::vector<Object>& faceobjects, std::vector<int>& picked, float nms_threshold)
+static void nms_sorted_bboxes(const std::vector<Object> &faceobjects, std::vector<int> &picked, float nms_threshold)
 {
     picked.clear();
 
@@ -149,12 +151,12 @@ static void nms_sorted_bboxes(const std::vector<Object>& faceobjects, std::vecto
 
     for (int i = 0; i < n; i++)
     {
-        const Object& a = faceobjects[i];
+        const Object &a = faceobjects[i];
 
         int keep = 1;
         for (int j = 0; j < (int)picked.size(); j++)
         {
-            const Object& b = faceobjects[picked[j]];
+            const Object &b = faceobjects[picked[j]];
 
             // intersection over union
             float inter_area = intersection_area(a, b);
@@ -174,7 +176,7 @@ static inline float sigmoid(float x)
     return static_cast<float>(1.f / (1.f + exp(-x)));
 }
 
-static void generate_proposals(const ncnn::Mat& anchors, int stride, const ncnn::Mat& in_pad, const ncnn::Mat& feat_blob, float prob_threshold, std::vector<Object>& objects)
+static void generate_proposals(const ncnn::Mat &anchors, int stride, const ncnn::Mat &in_pad, const ncnn::Mat &feat_blob, float prob_threshold, std::vector<Object> &objects)
 {
     const int num_grid = feat_blob.h;
 
@@ -206,7 +208,7 @@ static void generate_proposals(const ncnn::Mat& anchors, int stride, const ncnn:
         {
             for (int j = 0; j < num_grid_x; j++)
             {
-                const float* featptr = feat.row(i * num_grid_x + j);
+                const float *featptr = feat.row(i * num_grid_x + j);
 
                 // find class index with max class score
                 int class_index = 0;
@@ -262,17 +264,15 @@ static void generate_proposals(const ncnn::Mat& anchors, int stride, const ncnn:
         }
     }
 }
-static void draw_objects(const cv::Mat& bgr, const std::vector<Object>& objects, ncnn::Mat& da_seg_mask, ncnn::Mat& ll_seg_mask)
+void draw_objects(cv::Mat &image, const std::vector<Object> &objects, ncnn::Mat &da_seg_mask, ncnn::Mat &ll_seg_mask)
 {
-    
-    cv::Mat image = bgr.clone();
 
     for (size_t i = 0; i < objects.size(); i++)
     {
-        const Object& obj = objects[i];
+        const Object &obj = objects[i];
 
         fprintf(stderr, "%d = %.5f at %.2f %.2f %.2f x %.2f\n", obj.label, obj.prob,
-            obj.rect.x, obj.rect.y, obj.rect.width, obj.rect.height);
+                obj.rect.x, obj.rect.y, obj.rect.width, obj.rect.height);
 
         cv::rectangle(image, obj.rect, cv::Scalar(255, 255, 0));
 
@@ -290,36 +290,35 @@ static void draw_objects(const cv::Mat& bgr, const std::vector<Object>& objects,
             x = image.cols - label_size.width;
 
         cv::rectangle(image, cv::Rect(cv::Point(x, y), cv::Size(label_size.width, label_size.height + baseLine)),
-            cv::Scalar(255, 255, 255), -1);
+                      cv::Scalar(255, 255, 255), -1);
 
         cv::putText(image, text, cv::Point(x, y + label_size.height),
-            cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0));
+                    cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0));
     }
-    const float* da_ptr = (float*)da_seg_mask.data;
-    const float* ll_ptr = (float*)ll_seg_mask.data;
+    const float *da_ptr = (float *)da_seg_mask.data;
+    const float *ll_ptr = (float *)ll_seg_mask.data;
     int w = da_seg_mask.w;
     int h = da_seg_mask.h;
-    for (int i = 0; i < h; i++) {
-        cv::Vec3b* image_ptr = image.ptr<cv::Vec3b>(i);
-        for (int j = 0; j < w; j++) {
+    for (int i = 0; i < h; i++)
+    {
+        cv::Vec3b *image_ptr = image.ptr<cv::Vec3b>(i);
+        for (int j = 0; j < w; j++)
+        {
             if (da_ptr[i * w + j] < da_ptr[w * h + i * w + j])
             {
                 image_ptr[j] = cv::Vec3b(0, 255, 0);
             }
-            
+
             if (std::round(ll_ptr[i * w + j]) == 1.0)
             {
                 image_ptr[j] = cv::Vec3b(255, 0, 0);
             }
         }
     }
-    cv::imwrite("result.jpg", image);
-    cv::imshow("result", image);
-    cv::waitKey();
 }
 
-static int detect_yolopv2( cv::Mat& bgr, std::vector<Object>& objects, ncnn::Mat& da_seg_mask_, ncnn::Mat&  ll_seg_mask_, ncnn::Extractor& ex,
-const int& target_size, const float& prob_threshold, const float& nms_threshold)
+static int detect_yolopv2(cv::Mat &bgr, std::vector<Object> &objects, ncnn::Mat &da_seg_mask_, ncnn::Mat &ll_seg_mask_, ncnn::Extractor &ex,
+                          const int &target_size, const float &prob_threshold, const float &nms_threshold)
 {
     int img_w = bgr.cols;
     int img_h = bgr.rows;
@@ -350,9 +349,8 @@ const int& target_size, const float& prob_threshold, const float& nms_threshold)
     ncnn::Mat in_pad;
     ncnn::copy_make_border(in, in_pad, hpad / 2, hpad - hpad / 2, wpad / 2, wpad - wpad / 2, ncnn::BORDER_CONSTANT, 114.f);
 
-    const float norm_vals[3] = { 1 / 255.f, 1 / 255.f, 1 / 255.f };
+    const float norm_vals[3] = {1 / 255.f, 1 / 255.f, 1 / 255.f};
     in_pad.substract_mean_normalize(0, norm_vals);
-
 
     ex.input("images", in_pad);
 
@@ -414,6 +412,7 @@ const int& target_size, const float& prob_threshold, const float& nms_threshold)
 
         proposals.insert(proposals.end(), objects32.begin(), objects32.end());
     }
+
     ncnn::Mat da, ll;
     {
         ex.extract("677", da);
@@ -457,12 +456,11 @@ const int& target_size, const float& prob_threshold, const float& nms_threshold)
         objects[i].rect.width = x1 - x0;
         objects[i].rect.height = y1 - y0;
     }
-        
+
     return 0;
 }
 
-
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     if (argc != 2)
     {
@@ -470,7 +468,7 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    const char* imagepath = argv[1];
+    const char *imagepath = argv[1];
 
     ncnn::Net yolopv2;
 
@@ -481,25 +479,48 @@ int main(int argc, char** argv)
     const float prob_threshold = 0.30f;
     const float nms_threshold = 0.45f;
 
-    ncnn::Extractor ex = yolopv2.create_extractor();
+    // Path to the folder containing the images
+    std::string folder_path = imagepath;
 
-    cv::Mat m = cv::imread(imagepath, 1);
-    if (m.empty())
+    // Vector to store the image file names
+    std::vector<std::string> image_files;
+
+    // OpenCV function to get the file names of all images in the folder
+    cv::glob(folder_path, image_files);
+
+    // Loop through all the image files and read them
+    for (const auto &file : image_files)
     {
-        fprintf(stderr, "cv::imread %s failed\n", imagepath);
-        return -1;
+        cv::Mat img = cv::imread(file);
+
+        // Check if the image was successfully read
+        if (img.empty())
+        {
+            std::cerr << "Failed to read image file: " << file << std::endl;
+            continue;
+        }
+
+        auto start = high_resolution_clock::now();
+
+        ncnn::Extractor ex = yolopv2.create_extractor();
+
+        std::vector<Object> objects;
+        ncnn::Mat da_seg_mask, ll_seg_mask;
+
+        detect_yolopv2(img, objects, da_seg_mask, ll_seg_mask, ex, target_size, prob_threshold, nms_threshold);
+        
+        auto stop = high_resolution_clock::now();
+
+        auto duration = duration_cast<microseconds>(stop - start);
+        std::cout << "detection time :" << duration.count() << std::endl;
+
+        draw_objects(img, objects, da_seg_mask, ll_seg_mask);
+
+        auto stop1 = high_resolution_clock::now();
+
+        auto duration1 = duration_cast<microseconds>(stop1 - stop);
+        std::cout << "show time :" << duration1.count() << std::endl;
+        cv::imwrite("result.jpg", img);
     }
-    std::vector<Object> objects;
-    ncnn::Mat da_seg_mask, ll_seg_mask;
-    detect_yolopv2(m, objects, da_seg_mask, ll_seg_mask, ex, target_size, prob_threshold, nms_threshold);
-    auto start = high_resolution_clock::now();
-    detect_yolopv2(m, objects, da_seg_mask, ll_seg_mask, ex, target_size, prob_threshold, nms_threshold);
-
-    auto stop = high_resolution_clock::now();
-    auto duration = duration_cast<microseconds>(stop - start);
-    std::cout << "detection time :" << duration.count() << std::endl;
-
-    draw_objects(m, objects,da_seg_mask, ll_seg_mask);
-
     return 0;
 }
