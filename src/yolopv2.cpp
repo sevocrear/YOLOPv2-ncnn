@@ -472,9 +472,11 @@ int main(int argc, char **argv)
 
     ncnn::Net yolopv2;
 
+    yolopv2.opt.num_threads = 8;
+    yolopv2.opt.use_int8_inference = true;
     yolopv2.load_param("../models/yolopv2.param");
     yolopv2.load_model("../models/yolopv2.bin");
-
+    
     const int target_size = 640;
     const float prob_threshold = 0.30f;
     const float nms_threshold = 0.45f;
@@ -505,12 +507,21 @@ int main(int argc, char **argv)
         ncnn::Extractor ex = yolopv2.create_extractor();
         ex.set_light_mode(true);
         ex.set_num_threads(4);
+<<<<<<< HEAD
         
+=======
+
+
+>>>>>>> cfff18e (add yolop)
         std::vector<Object> objects;
         ncnn::Mat da_seg_mask, ll_seg_mask;
 
         detect_yolopv2(img, objects, da_seg_mask, ll_seg_mask, ex, target_size, prob_threshold, nms_threshold);
+<<<<<<< HEAD
         
+=======
+
+>>>>>>> cfff18e (add yolop)
         auto stop = high_resolution_clock::now();
 
         auto duration = duration_cast<microseconds>(stop - start);

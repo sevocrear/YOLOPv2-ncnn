@@ -15,7 +15,7 @@ mkdir build
 cd build 
 cmake ..
 make 
-./yolopv2_ncnn ../imgs/veh3.jpg
+./yolopv2_ncnn ../images
 ```
 
 ## screenshot
