@@ -27,3 +27,6 @@ link_directories(${CMAKE_CURRENT_SOURCE_DIR}/lib)
 
 add_executable(yolopv2_ncnn src/yolopv2.cpp)
 target_link_libraries(yolopv2_ncnn ncnn ${OpenCV_LIBS})
+
+add_executable(yolop_ncnn src/yolop.cpp)
+target_link_libraries(yolop_ncnn ncnn ${OpenCV_LIBS})
